@@ -1,0 +1,76 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "version": "2024.0.1",
+    "title": "my coin analyst",
+    "description": "Restful API for my coin analysis"
+  },
+  "servers": [
+    {
+      "url": "http://www.rimapa0321.com",
+      "description": "my coin analyst Service"
+    }
+  ],
+  "tags": [
+    {
+      "name": "mycoins",
+      "description": "coin info"
+    }
+  ],
+  "paths": {
+    "/api/coin": {
+      "get": {
+        "summary": "Get Coin Details",
+        "tags": [
+          "mycoins"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/detail"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "detail": {
+        "type": "object",
+        "properties": {
+          "datas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbol": {
+                  "type": "string"
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "price": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "balance": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
