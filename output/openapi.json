@@ -47,27 +47,33 @@
           "datas": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "symbol": {
-                  "type": "string"
-                },
-                "current": {
-                  "type": "object",
-                  "properties": {
-                    "price": {
-                      "type": "string"
-                    },
-                    "amount": {
-                      "type": "string"
-                    },
-                    "balance": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
+              "$ref": "#/components/schemas/data"
             }
+          }
+        }
+      },
+      "data": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/current"
+          }
+        }
+      },
+      "current": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "string"
           }
         }
       }
