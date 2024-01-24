@@ -24,8 +24,8 @@ jobs:
     - name: install oapi-codegen
       run: go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest
 
-    - name: create folder
-      run: mkdir openapi
+    # - name: create folder
+    #   run: mkdir openapi
 
     - name: create types
       run: oapi-codegen -generate "types" -package openapi output/openapi.json > openapi/type.gen.go
@@ -36,9 +36,9 @@ jobs:
     - name: create client
       run:  oapi-codegen -generate "client" -package openapi output/openapi.json > openapi/client.gen.go
 
-    - name: init
-      run: |
-        go mod init github.com/${GITHUB_REPOSITORY}
+    # - name: init
+    #   run: |
+    #     go mod init github.com/${GITHUB_REPOSITORY}
     - name: tidy
       run: |
         go mod tidy
