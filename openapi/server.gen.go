@@ -12,6 +12,9 @@ type ServerInterface interface {
 	// Get Coin Details
 	// (GET /api/coin)
 	GetApiCoin(ctx echo.Context) error
+	// Adds a new history
+	// (POST /api/history)
+	PostApiHistory(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -25,6 +28,15 @@ func (w *ServerInterfaceWrapper) GetApiCoin(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetApiCoin(ctx)
+	return err
+}
+
+// PostApiHistory converts echo context to params.
+func (w *ServerInterfaceWrapper) PostApiHistory(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostApiHistory(ctx)
 	return err
 }
 
@@ -57,5 +69,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/api/coin", wrapper.GetApiCoin)
+	router.POST(baseURL+"/api/history", wrapper.PostApiHistory)
 
 }

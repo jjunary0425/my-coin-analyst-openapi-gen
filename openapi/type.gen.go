@@ -20,3 +20,11 @@ type Data struct {
 type Detail struct {
 	Datas *[]Data `json:"datas,omitempty"`
 }
+
+// Message defines model for message.
+type Message struct {
+	Message *string `json:"message,omitempty"`
+}
+
+// PostApiHistoryJSONRequestBody defines body for PostApiHistory for application/json ContentType.
+type PostApiHistoryJSONRequestBody = Detail

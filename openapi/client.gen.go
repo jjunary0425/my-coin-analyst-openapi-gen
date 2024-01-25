@@ -4,6 +4,7 @@
 package openapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -88,10 +89,39 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 type ClientInterface interface {
 	// GetApiCoin request
 	GetApiCoin(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostApiHistoryWithBody request with any body
+	PostApiHistoryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostApiHistory(ctx context.Context, body PostApiHistoryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetApiCoin(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetApiCoinRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiHistoryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiHistoryRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostApiHistory(ctx context.Context, body PostApiHistoryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostApiHistoryRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +155,46 @@ func NewGetApiCoinRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPostApiHistoryRequest calls the generic PostApiHistory builder with application/json body
+func NewPostApiHistoryRequest(server string, body PostApiHistoryJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostApiHistoryRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostApiHistoryRequestWithBody generates requests for PostApiHistory with any type of body
+func NewPostApiHistoryRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/history")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -174,6 +244,11 @@ func WithBaseURL(baseURL string) ClientOption {
 type ClientWithResponsesInterface interface {
 	// GetApiCoinWithResponse request
 	GetApiCoinWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetApiCoinResponse, error)
+
+	// PostApiHistoryWithBodyWithResponse request with any body
+	PostApiHistoryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiHistoryResponse, error)
+
+	PostApiHistoryWithResponse(ctx context.Context, body PostApiHistoryJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiHistoryResponse, error)
 }
 
 type GetApiCoinResponse struct {
@@ -198,6 +273,28 @@ func (r GetApiCoinResponse) StatusCode() int {
 	return 0
 }
 
+type PostApiHistoryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Message
+}
+
+// Status returns HTTPResponse.Status
+func (r PostApiHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostApiHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // GetApiCoinWithResponse request returning *GetApiCoinResponse
 func (c *ClientWithResponses) GetApiCoinWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetApiCoinResponse, error) {
 	rsp, err := c.GetApiCoin(ctx, reqEditors...)
@@ -205,6 +302,23 @@ func (c *ClientWithResponses) GetApiCoinWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseGetApiCoinResponse(rsp)
+}
+
+// PostApiHistoryWithBodyWithResponse request with arbitrary body returning *PostApiHistoryResponse
+func (c *ClientWithResponses) PostApiHistoryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostApiHistoryResponse, error) {
+	rsp, err := c.PostApiHistoryWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiHistoryResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostApiHistoryWithResponse(ctx context.Context, body PostApiHistoryJSONRequestBody, reqEditors ...RequestEditorFn) (*PostApiHistoryResponse, error) {
+	rsp, err := c.PostApiHistory(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostApiHistoryResponse(rsp)
 }
 
 // ParseGetApiCoinResponse parses an HTTP response from a GetApiCoinWithResponse call
@@ -223,6 +337,32 @@ func ParseGetApiCoinResponse(rsp *http.Response) (*GetApiCoinResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Detail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostApiHistoryResponse parses an HTTP response from a PostApiHistoryWithResponse call
+func ParsePostApiHistoryResponse(rsp *http.Response) (*PostApiHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostApiHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Message
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
