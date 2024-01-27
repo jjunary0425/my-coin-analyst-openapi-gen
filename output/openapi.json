@@ -17,8 +17,8 @@
       "description": "coin info"
     },
     {
-      "name": "history",
-      "description": "history info"
+      "name": "investment",
+      "description": "investment info"
     }
   ],
   "paths": {
@@ -42,17 +42,17 @@
         }
       }
     },
-    "/api/history": {
+    "/api/investment": {
       "post": {
-        "summary": "Adds a new history",
+        "summary": "Adds a new investment",
         "tags": [
-          "history"
+          "investment"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/detail"
+                "$ref": "#/components/schemas/myinvestment"
               }
             }
           }
@@ -115,6 +115,39 @@
         "properties": {
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "myinvestment": {
+        "type": "object",
+        "properties": {
+          "datas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/coininvestment"
+            }
+          }
+        }
+      },
+      "investment": {
+        "type": "object",
+        "properties": {
+          "deposit": {
+            "type": "string"
+          },
+          "withdraw": {
+            "type": "string"
+          }
+        }
+      },
+      "coininvestment": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/investment"
           }
         }
       }
